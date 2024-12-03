@@ -1,4 +1,4 @@
-// import { fetchApi } from './config';
+import { fetchApi } from './config';
 
 export interface UploadResponse {
   id: string;

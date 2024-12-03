@@ -44,12 +44,12 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold mb-2">上传文档</h2>
+        <h2 className="text-lg font-semibold mb-2">Upload Main Document</h2>
         <Input type="file" accept=".docx" onChange={handleMainDocumentUpload} />
-        {mainDocument && <p className="mt-2">选择: {mainDocument.name}</p>}
+        {mainDocument && <p className="mt-2">Selected: {mainDocument.name}</p>}
       </div>
       <div>
-        <h2 className="text-lg font-semibold mb-2">上传知识库文档</h2>
+        <h2 className="text-lg font-semibold mb-2">Upload Reference Documents</h2>
         <Input type="file" accept=".docx" multiple onChange={handleReferenceDocumentsUpload} />
         {referenceDocuments.length > 0 && (
           <ul className="mt-2">
@@ -60,10 +60,10 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
         )}
       </div>
       <Button onClick={handleUpload} disabled={!mainDocument || isUploading}>
-        {isUploading ? '上传中...' : '已处理文档'}
+        {isUploading ? 'Uploading...' : 'Upload and Process Documents'}
       </Button>
       {uploadedDocId && (
-        <p className="text-green-600">文档上传成功. ID: {uploadedDocId}</p>
+        <p className="text-green-600">Document uploaded successfully. ID: {uploadedDocId}</p>
       )}
     </div>
   )

@@ -28,12 +28,12 @@ export default function DocumentPreview({ documentId }: { documentId: string | n
 
   return (
     <div className="mt-4">
-      <h2 className="text-lg font-semibold mb-2">文档预览</h2>
+      <h2 className="text-lg font-semibold mb-2">Document Preview</h2>
       <div className="border p-4 h-64 overflow-y-auto">
-        {isLoading && <p>载入文档内容中...</p>}
+        {isLoading && <p>Loading document content...</p>}
         {error && <p className="text-red-600">{error}</p>}
         {content && <pre className="whitespace-pre-wrap">{content}</pre>}
-        {!documentId && <p>暂无文档.</p>}
+        {!documentId && <p>No document uploaded yet.</p>}
       </div>
     </div>
   )
