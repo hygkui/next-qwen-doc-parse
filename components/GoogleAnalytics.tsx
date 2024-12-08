@@ -15,7 +15,7 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
 
   return (
     <>
-      <Script
+      {/* <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
         strategy="afterInteractive"
       />
@@ -26,7 +26,7 @@ export default function GoogleAnalytics({ gaId }: { gaId: string }) {
           gtag('js', new Date());
           gtag('config', '${gaId}');
         `}
-      </Script>
+      </Script> */}
     </>
   )
 }

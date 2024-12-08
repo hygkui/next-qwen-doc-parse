@@ -1,50 +1,62 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { uploadDocument } from '@/app/api/documents'
 import { ErrorModal } from '@/components/ErrorModal'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 interface FileUploadProps {
-  onUploadComplete: (id: string) => void;
+  onUploadComplete: (id: string, content?: string) => void;
 }
 
 export default function FileUpload({ onUploadComplete }: FileUploadProps) {
-  const [mainDocument, setMainDocument] = useState<File | null>(null)
-  const [referenceDocuments, setReferenceDocuments] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploadedDocId, setUploadedDocId] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileContent, setFileContent] = useState<string | null>(null)
 
-  const handleMainDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setMainDocument(e.target.files[0])
-    }
-  }
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  const handleReferenceDocumentsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files)
-      setReferenceDocuments(prev => [...prev, ...filesArray])
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!mainDocument) {
-      setUploadError('Please select a main document to upload')
+    if (!file.name.endsWith('.txt')) {
+      setUploadError('Please upload a .txt file')
       return
     }
 
+    setSelectedFile(file)
     setIsUploading(true)
     setUploadError(null)
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      if (event.target && event.target.result) {
+        setFileContent(event.target.result as string)
+      }
+    }
+    reader.readAsText(file)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
     try {
-      const uploadResponse = await uploadDocument(mainDocument)
-      setUploadedDocId(uploadResponse.id)
-      onUploadComplete(uploadResponse.id)
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        onUploadComplete(data.filePath, data.content)
+      } else {
+        throw new Error(data.error || 'Upload failed')
+      }
     } catch (error) {
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Document upload failed, please try again'
+        : 'Failed to upload file'
       setUploadError(errorMessage)
       console.error('Upload failed:', error)
     } finally {
@@ -54,43 +66,37 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="mainDocument" className="block mb-2">
-          Main Document
-        </label>
-        <Input 
-          id="mainDocument"
-          type="file" 
-          onChange={handleMainDocumentUpload}
+      <div className="flex items-center space-x-4">
+        <Input
+          type="file"
+          accept=".txt"
+          onChange={handleFileUpload}
           disabled={isUploading}
+          className="flex-1"
         />
+        {isUploading && <LoadingSpinner />}
       </div>
-
-      {mainDocument && (
-        <div className="mt-4">
-          <p>Selected file: {mainDocument.name}</p>
-        </div>
+      
+      {selectedFile && (
+        <p className="text-sm text-gray-600">
+          Selected file: {selectedFile.name}
+        </p>
       )}
 
-      <div className="mt-4">
-        {isUploading ? (
-          <LoadingSpinner message="Uploading document..." />
-        ) : (
-          <Button 
-            onClick={handleUpload} 
-            disabled={!mainDocument}
-          >
-            Upload Document
-          </Button>
-        )}
-      </div>
+      {/* {fileContent && (
+        <pre className="text-sm text-gray-600">
+          {fileContent}
+        </pre>
+      )} */}
 
-      <ErrorModal 
-        isOpen={!!uploadError}
-        onClose={() => setUploadError(null)}
-        title="Upload Error"
-        message={uploadError || ''}
-      />
+      {uploadError && (
+        <ErrorModal
+          isOpen={!!uploadError}
+          onClose={() => setUploadError(null)}
+          title="Upload Error"
+          message={uploadError}
+        />
+      )}
     </div>
   )
 }

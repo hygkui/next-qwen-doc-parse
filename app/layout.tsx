@@ -1,7 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { MenuProvider } from './context/MenuContext'
-import GoogleAnalytics from './components/GoogleAnalytics'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -12,11 +12,8 @@ export const metadata = {
 
 export default function RootLayout({
   children,
-  // Add this line to handle client components
-  params,
 }: {
   children: React.ReactNode
-  params: any
 }) {
   return (
     <html lang="en">
