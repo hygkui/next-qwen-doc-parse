@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { uploadDocument } from '../api/documents'
+import { uploadDocument } from '@/app/api/documents'
+import { ErrorModal } from '@/components/ErrorModal'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 interface FileUploadProps {
-  onUploadSuccess: (id: string) => void;
+  onUploadComplete: (id: string) => void;
 }
 
-export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
+export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [mainDocument, setMainDocument] = useState<File | null>(null)
   const [referenceDocuments, setReferenceDocuments] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadedDocId, setUploadedDocId] = useState<string | null>(null)
 
   const handleMainDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,51 +24,73 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
   const handleReferenceDocumentsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setReferenceDocuments(Array.from(e.target.files))
+      const filesArray = Array.from(e.target.files)
+      setReferenceDocuments(prev => [...prev, ...filesArray])
     }
   }
 
   const handleUpload = async () => {
-    if (mainDocument) {
-      setIsUploading(true)
-      try {
-        const response = await uploadDocument(mainDocument)
-        setUploadedDocId(response.id)
-        onUploadSuccess(response.id)
-        console.log('Document uploaded:', response)
-      } catch (error) {
-        console.error('Error uploading document:', error)
-      } finally {
-        setIsUploading(false)
-      }
+    if (!mainDocument) {
+      setUploadError('Please select a main document to upload')
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError(null)
+    try {
+      const uploadResponse = await uploadDocument(mainDocument)
+      setUploadedDocId(uploadResponse.id)
+      onUploadComplete(uploadResponse.id)
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Document upload failed, please try again'
+      setUploadError(errorMessage)
+      console.error('Upload failed:', error)
+    } finally {
+      setIsUploading(false)
     }
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold mb-2">Upload Main Document</h2>
-        <Input type="file" accept=".docx" onChange={handleMainDocumentUpload} />
-        {mainDocument && <p className="mt-2">Selected: {mainDocument.name}</p>}
+        <label htmlFor="mainDocument" className="block mb-2">
+          Main Document
+        </label>
+        <Input 
+          id="mainDocument"
+          type="file" 
+          onChange={handleMainDocumentUpload}
+          disabled={isUploading}
+        />
       </div>
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Upload Reference Documents</h2>
-        <Input type="file" accept=".docx" multiple onChange={handleReferenceDocumentsUpload} />
-        {referenceDocuments.length > 0 && (
-          <ul className="mt-2">
-            {referenceDocuments.map((file, index) => (
-              <li key={index}>{file.name}</li>
-            ))}
-          </ul>
+
+      {mainDocument && (
+        <div className="mt-4">
+          <p>Selected file: {mainDocument.name}</p>
+        </div>
+      )}
+
+      <div className="mt-4">
+        {isUploading ? (
+          <LoadingSpinner message="Uploading document..." />
+        ) : (
+          <Button 
+            onClick={handleUpload} 
+            disabled={!mainDocument}
+          >
+            Upload Document
+          </Button>
         )}
       </div>
-      <Button onClick={handleUpload} disabled={!mainDocument || isUploading}>
-        {isUploading ? 'Uploading...' : 'Upload and Process Documents'}
-      </Button>
-      {uploadedDocId && (
-        <p className="text-green-600">Document uploaded successfully. ID: {uploadedDocId}</p>
-      )}
+
+      <ErrorModal 
+        isOpen={!!uploadError}
+        onClose={() => setUploadError(null)}
+        title="Upload Error"
+        message={uploadError || ''}
+      />
     </div>
   )
 }
-
