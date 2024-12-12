@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { id: 'home', label: '上传文档', icon: '🏠' },
+  { id: 'upload-document-2', label: '上传文档 2.0', icon: '📤' },
   { id: 'documents', label: '文档', icon: '📄' },
   { id: 'knowledge-base', label: '知识库', icon: '🧠' },
   { id: 'conversation-history', label: '会话记录', icon: '💬' },

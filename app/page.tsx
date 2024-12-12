@@ -6,6 +6,7 @@ import Layout from '@/components/Layout'
 import FileUpload from '@/components/FileUpload'
 import ChatInterface from '@/components/ChatInterface'
 import CorrectDocument from '@/components/CorrectDocument'
+import UploadDocument2Page from '@/components/UploadDocument2Page'
 import { useMenu } from './context/MenuContext'
 import { Button } from '@/components/ui/button'
 
@@ -50,6 +51,8 @@ export default function Home() {
             linesPerPage={30} 
           />
         ) : null;
+      case 'upload-document-2':
+        return <UploadDocument2Page />;
       case 'chat':
         return <ChatInterface />;
       case 'documents':
