@@ -10,7 +10,6 @@ import { auth } from '@/auth'
 import { createDefaultUser } from '@/utils/auth'
 import fs from 'fs'
 import os from 'os'
-import { parsePDFFile } from '@/utils/pdf-utils'
 
 export async function POST(req: Request) {
   try {

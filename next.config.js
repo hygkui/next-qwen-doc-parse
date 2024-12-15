@@ -10,10 +10,6 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
-  experimental: {
-    // This will force Next.js to use Server Components by default
-    serverActions: true,
-  },
   // Configure dynamic route handling
   async headers() {
     return [
