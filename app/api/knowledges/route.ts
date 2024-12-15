@@ -56,15 +56,17 @@ export async function GET() {
       );
     }
 
-    const result = await db.select()
+    const documents = await db
+      .select()
       .from(knowledges)
-      .where(eq(knowledges.userId, session.userId));
+      .where(eq(knowledges.type, 'reference'))
+      .orderBy(knowledges.createdAt);
 
-    return NextResponse.json({ knowledges: result });
+    return NextResponse.json({ documents });
   } catch (error) {
-    console.error('Error fetching knowledges:', error);
+    console.error('Error fetching reference documents:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch knowledges' },
+      { error: '获取知识库文档失败' },
       { status: 500 }
     );
   }

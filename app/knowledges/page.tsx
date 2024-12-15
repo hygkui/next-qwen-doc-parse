@@ -2,7 +2,8 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/auth-context';
 import { AuthLoading } from '@/components/auth/auth-loading';
 import { Button } from '@/components/ui/button';
@@ -26,30 +27,66 @@ interface Knowledge {
 
 export default function KnowledgesPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [knowledges, setKnowledges] = useState<Knowledge[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchKnowledges = async () => {
-      try {
-        const response = await fetch('/api/knowledges');
-        if (!response.ok) {
-          throw new Error('Failed to fetch knowledge entries');
-        }
-        const data = await response.json();
-        setKnowledges(data.knowledges || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (!authLoading) {
       fetchKnowledges();
     }
   }, [authLoading]);
+
+  const fetchKnowledges = async () => {
+    try {
+      const response = await fetch('/api/knowledges')
+      if (!response.ok) {
+        throw new Error('获取知识库列表失败')
+      }
+      const data = await response.json()
+      console.log('Fetched data:', data) // Debug log
+      setKnowledges(data.documents || [])
+    } catch (error) {
+      console.error('Error fetching knowledges:', error)
+      alert('获取知识库列表失败')
+    } finally {
+      setLoading(false)
+    }
+  };
+
+  const handleFileUpload = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/knowledges/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('上传文档失败');
+      }
+
+      alert('文档上传成功');
+
+      // Refresh the list
+      fetchKnowledges();
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('上传文档失败');
+    } finally {
+      setUploading(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定要删除这条知识条目吗？')) {
@@ -87,25 +124,43 @@ export default function KnowledgesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold text-gray-900">
           {user?.isDefaultUser ? '访客知识库' : '我的知识库'}
         </h1>
-        <Link href="/knowledges/new">
-          <Button>创建新条目</Button>
-        </Link>
+        <div className="relative">
+          <input
+            type="file"
+            onChange={handleFileUpload}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            accept=".txt,.doc,.docx,.pdf"
+            disabled={uploading}
+          />
+          <Button disabled={uploading}>
+            {uploading ? '上传中...' : '上传新文档'}
+          </Button>
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+      {loading ? (
+        <div className="text-center py-8">
+          <p>加载中...</p>
         </div>
       ) : knowledges.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-medium text-gray-900 mb-2">暂无知识条目</h3>
-          <p className="text-gray-500 mb-4">创建您的第一条知识条目以开始使用</p>
-          <Link href="/knowledges/new">
-            <Button>创建条目</Button>
-          </Link>
+          <p className="text-gray-500 mb-4">上传您的第一个文档以开始使用</p>
+          <div className="relative">
+            <input
+              type="file"
+              onChange={handleFileUpload}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              accept=".txt,.doc,.docx,.pdf"
+              disabled={uploading}
+            />
+            <Button disabled={uploading}>
+              {uploading ? '上传中...' : '上传新文档'}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow">
@@ -134,9 +189,6 @@ export default function KnowledgesPage() {
                     <div className="flex items-center gap-2">
                       <Link href={`/knowledges/${knowledge.id}`}>
                         <Button variant="outline" size="sm">查看</Button>
-                      </Link>
-                      <Link href={`/knowledges/${knowledge.id}/edit`}>
-                        <Button variant="outline" size="sm">编辑</Button>
                       </Link>
                       <Button 
                         variant="outline" 
