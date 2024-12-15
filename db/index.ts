@@ -8,36 +8,58 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set in the environment variables');
 }
 
-// Configure pool
-const pool = new Pool({
-  connectionString,
-  max: 2,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  keepAlive: true,
-});
+// Global declarations
+declare global {
+  var pool: Pool | undefined;
+}
 
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
+// Singleton pattern for database pool
+function getPool() {
+  if (!global.pool) {
+    global.pool = new Pool({
+      connectionString,
+      max: 2,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      keepAlive: true,
+    });
 
-// Graceful shutdown
+    // Handle pool errors
+    global.pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+      process.exit(-1);
+    });
+  }
+  return global.pool;
+}
+
+// Get or create pool
+const pool = getPool();
+
+// Graceful shutdown handler
+let isShuttingDown = false;
+
 const shutdown = async () => {
+  if (isShuttingDown || !global.pool) {
+    return;
+  }
+  
+  isShuttingDown = true;
   console.log('Closing database pool...');
   try {
-    await pool.end();
+    await global.pool.end();
     console.log('Database pool closed');
+    global.pool = undefined;
   } catch (error) {
     console.error('Error closing database pool:', error);
   }
 };
 
 // Handle process events for clean shutdown
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-process.on('exit', shutdown);
+if (process.env.NODE_ENV !== 'production') {
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
 
 // Create db instance with schema
 export const db = drizzle(pool, { schema });

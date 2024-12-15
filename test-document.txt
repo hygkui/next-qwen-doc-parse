@@ -1,0 +1,15 @@
+This is a test document for the Qwen API integration.
+
+Key Points:
+1. Document parsing functionality
+2. Content extraction capabilities
+3. API response handling
+
+The system should:
+- Calculate a hash of this document
+- Send it to Qwen API for parsing
+- Store both original and parsed content
+- Display the results in a readable format
+
+Additional test content to verify parsing:
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.

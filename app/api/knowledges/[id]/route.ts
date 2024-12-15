@@ -4,6 +4,8 @@ import { knowledges } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getSession } from '@/utils/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }

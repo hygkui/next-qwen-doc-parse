@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server';
 const QWEN_API_KEY = process.env.QWEN_API_KEY;
 const QWEN_API_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const { text } = await req.json();

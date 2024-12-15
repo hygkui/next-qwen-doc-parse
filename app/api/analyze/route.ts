@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { analyzeWithQwen } from '../qwen';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const { text } = await req.json();
