@@ -1,5 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
+import { AuthProvider } from './context/auth-context'
+import { Header } from '@/components/header/header'
 import { MenuProvider } from './context/MenuContext'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 
@@ -18,10 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <MenuProvider>
-          {children}
-        </MenuProvider>
-        <GoogleAnalytics gaId="G-XXXXXXXXXX" />
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1 container mx-auto px-4 py-8">
+              <MenuProvider>
+                {children}
+              </MenuProvider>
+              <GoogleAnalytics gaId="G-XXXXXXXXXX" />
+            </main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )
