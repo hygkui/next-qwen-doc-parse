@@ -95,12 +95,13 @@ export default function UploadDocument2Page() {
         body: formData,
       });
 
-      const data = await response.json();
+      const res = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload document');
+        throw new Error(res.error || 'Failed to upload document');
       }
 
+      const data = res.results[0]
       // Directly set the document state with the uploaded file details
       setDocument({
         id: data.id,
@@ -117,7 +118,7 @@ export default function UploadDocument2Page() {
       });
 
       // Navigate to the document page
-      router.push(`/documents/${data.id}`);
+      router.push(`/upload-document-2?id=${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload document');
     } finally {

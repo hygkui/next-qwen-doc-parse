@@ -1,5 +1,9 @@
+.markdownContainer {
+  position: relative;
+}
+
 .markdownContainer ::selection {
-  background-color: transparent;
+  background-color: rgba(255, 0, 0, 0.1);
   text-decoration: underline;
   text-decoration-color: red;
   text-decoration-thickness: 2px;
@@ -22,6 +26,9 @@
   align-items: center !important;
   justify-content: center !important;
   font-weight: 500 !important;
+  position: fixed !important;
+  z-index: 50 !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 .tooltipButton:hover {
@@ -33,6 +40,14 @@
 
 .tooltipButton:active {
   background: #cce7f7 !important;
-  transform: translateY(1px) !important;
+  transform: translate(-50%, -50%) translateY(1px) !important;
   border-color: #0369a1 !important;
+}
+
+.highlightedText {
+  background-color: rgba(255, 0, 0, 0.1);
+  text-decoration: underline;
+  text-decoration-color: red;
+  text-decoration-thickness: 2px;
+  cursor: pointer;
 }

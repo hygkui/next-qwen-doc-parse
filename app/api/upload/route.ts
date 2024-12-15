@@ -68,7 +68,8 @@ export async function POST(req: Request) {
         fs.unlinkSync(tempFilePath);
 
         // Save document to database using Drizzle
-        await db.insert(documents).values({
+        const [insertedDoc] = await db.insert(documents).values({
+          id: documentId,
           userId: session.user.id,
           title: file.name,
           fileHash,
@@ -80,13 +81,11 @@ export async function POST(req: Request) {
           status: 'pending',
           createdAt: new Date(),
           updatedAt: new Date()
-        });
+        }).returning();
 
         results.push({
-          fileName: file.name,
+          ...insertedDoc,
           success: true,
-          documentId,
-          metadata
         });
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -98,6 +97,10 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log('\n\nUpload results:', {
+      message: '文件上传成功',
+      results
+    })
     return NextResponse.json({
       message: '文件上传成功',
       results

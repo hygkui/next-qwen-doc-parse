@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from './LoadingSpinner';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import styles from './UploadDocument2Page.module.css';
 
 interface TooltipPosition {
@@ -60,10 +59,28 @@ export default function UploadDocument2Page() {
       });
 
       if (!response.ok) throw new Error('上传失败');
+      console.log("🚀 ~ file: UploadDocument2Page.tsx:64 ~ response:", response)
 
       const data = await response.json();
-      setDocumentId(data.documentId);
-      setDocumentText(data.text);
+      console.log("🚀 ~ file: UploadDocument2Page.tsx:65 ~ data:", data)
+      
+      // Check if upload was successful and get the document ID from results
+      if (data.results?.[0]?.id) {
+        const id = data.results[0].id;
+        
+        // Verify the document exists before redirecting
+        const verifyResponse = await fetch(`/api/documents/${id}`);
+        if (verifyResponse.ok) {
+          // Document exists, safe to redirect
+          window.location.href = `/documents/${id}`;
+        } else {
+          throw new Error('文档保存失败，请重试');
+        }
+      } else {
+        throw new Error(data.results?.[0]?.error || '上传失败');
+      }
+
+      setDocumentText(data.text || '');
       setTotalPages(data.totalPages || 1);
       setCurrentPage(1);
 
@@ -155,13 +172,17 @@ export default function UploadDocument2Page() {
     const selectedText = selection?.toString().trim();
 
     if (selectedText) {
-      // Use mouse position instead of range position
-      setSelectedText(selectedText);
-      setTooltipPosition({
-        x: event.clientX,
-        y: event.clientY
-      });
-      setShowTooltip(true);
+      const range = selection?.getRangeAt(0);
+      const rect = range?.getBoundingClientRect();
+      
+      if (rect) {
+        setSelectedText(selectedText);
+        setTooltipPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top
+        });
+        setShowTooltip(true);
+      }
     } else {
       setShowTooltip(false);
     }
@@ -171,6 +192,7 @@ export default function UploadDocument2Page() {
   const handleCopyToCorrection = useCallback(() => {
     if (!selectedText) return;
     setAiAnalysis(selectedText);
+    setManualAnalysis(selectedText); 
     setShowTooltip(false);
   }, [selectedText]);
 
@@ -289,12 +311,8 @@ export default function UploadDocument2Page() {
                       }}
                       className={styles.tooltipButton}
                       style={{
-                        position: 'fixed',
                         left: `${tooltipPosition.x}px`,
-                        top: `${tooltipPosition.y}px`,
-                        transform: 'translateY(-50%)',
-                        zIndex: 50,
-                        whiteSpace: 'nowrap'
+                        top: `${tooltipPosition.y}px`
                       }}
                     >
                       校对此段
@@ -316,12 +334,8 @@ export default function UploadDocument2Page() {
                     }}
                     className={styles.tooltipButton}
                     style={{
-                      position: 'fixed',
                       left: `${tooltipPosition.x}px`,
-                      top: `${tooltipPosition.y}px`,
-                      transform: 'translateY(-50%)',
-                      zIndex: 50,
-                      whiteSpace: 'nowrap'
+                      top: `${tooltipPosition.y}px`
                     }}
                   >
                     校对此段
