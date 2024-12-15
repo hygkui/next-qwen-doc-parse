@@ -3,23 +3,22 @@ import Layout from '@/components/Layout'
 export default function PrivacyPolicy() {
   return (
     <Layout>
-      <h2 className="text-xl font-semibold mb-4">Privacy Policy</h2>
+      <h2 className="text-xl font-semibold mb-4">隐私政策</h2>
       <p className="mb-4">
-        This privacy policy outlines how we collect, use, and protect your personal information.
+        本隐私政策概述了我们如何收集、使用和保护您的个人信息。
       </p>
-      <h3 className="text-lg font-semibold mb-2">Data Collection</h3>
+      <h3 className="text-lg font-semibold mb-2">数据收集</h3>
       <p className="mb-4">
-        We use Google Analytics to track user interactions with our website. This helps us understand how users engage with our content and improve our services.
+        我们使用 Google Analytics 来跟踪用户与我们网站的互动。这有助于我们了解用户如何使用我们的内容并改进我们的服务。
       </p>
-      <h3 className="text-lg font-semibold mb-2">Data Usage</h3>
+      <h3 className="text-lg font-semibold mb-2">数据使用</h3>
       <p className="mb-4">
-        The data collected through Google Analytics is used solely for the purpose of improving our website and services. We do not sell or share this data with third parties.
+        通过 Google Analytics 收集的数据仅用于改进我们的网站和服务。我们不会将这些数据出售或与第三方共享。
       </p>
-      <h3 className="text-lg font-semibold mb-2">Your Rights</h3>
+      <h3 className="text-lg font-semibold mb-2">您的权利</h3>
       <p>
-        You have the right to request access to your personal data, to request correction of the data, to request that we restrict our processing, or to request that we delete your data.
+        您有权要求访问您的个人数据、要求更正数据、要求我们限制处理，或要求我们删除您的数据。
       </p>
     </Layout>
   )
 }
-
