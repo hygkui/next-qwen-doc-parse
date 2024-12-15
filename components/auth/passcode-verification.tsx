@@ -24,18 +24,6 @@ export function PasscodeVerification({ onVerify }: PasscodeVerificationProps) {
 
   return (
     <div className="w-full max-w-sm mx-auto space-y-6 text-center">
-      <div>
-        <img 
-          src="/chatgpt.png" 
-          alt="访问码" 
-          className="w-16 h-16 mx-auto mb-4"
-        />
-        <h2 className="text-2xl font-bold">访问码</h2>
-        <p className="text-gray-500 mt-2">
-          关注公众号《我的代码会好吗》，获取免费访问码
-        </p>
-      </div>
-      
       <div className="space-y-4">
         <Input
           type="password"

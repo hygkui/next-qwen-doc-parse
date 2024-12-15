@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { ReferenceDocsList } from '@/components/reference-docs/reference-docs-list';
 
 interface Document {
   id: string;
@@ -24,6 +23,17 @@ interface Document {
   updatedAt?: string;
 }
 
+interface TooltipPosition {
+  x: number;
+  y: number;
+}
+
+interface Correction {
+  text: string;
+  startIndex: number;
+  endIndex: number;
+}
+
 export default function UploadDocument2Page() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,10 +44,14 @@ export default function UploadDocument2Page() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [corrections, setCorrections] = useState<string[]>([]);
+  const [corrections, setCorrections] = useState<Correction[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedReferenceDocIds, setSelectedReferenceDocIds] = useState<string[]>([]);
-  const [showReferenceDocsModal, setShowReferenceDocsModal] = useState(false);
+
+  // Selection state
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition>({ x: 0, y: 0 });
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
 
   const handleReturnToList = () => {
     router.push('/documents');
@@ -55,9 +69,11 @@ export default function UploadDocument2Page() {
         const data = await response.json();
         setDocument(data);
         if (data.corrections) {
-          setCorrections(Array.isArray(data.corrections) ? data.corrections : [data.corrections]);
+          const parsedCorrections = Array.isArray(data.corrections) 
+            ? data.corrections.map((c: any) => typeof c === 'string' ? { text: c, startIndex: -1, endIndex: -1 } : c)
+            : [{ text: data.corrections, startIndex: -1, endIndex: -1 }];
+          setCorrections(parsedCorrections);
         }
-        // If document exists, set to editing mode
         setIsEditing(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch document');
@@ -67,64 +83,57 @@ export default function UploadDocument2Page() {
     fetchDocument();
   }, [id]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setError(null);
-      setMessage(null);
-    }
-  };
+  // Handle text selection
+  const handleTextSelection = useCallback((event: MouseEvent) => {
+    if (typeof window === 'undefined') return;
+    
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
 
-  const handleUpload = async () => {
-    if (!file) {
-      setError('Please select a file to upload');
-      return;
-    }
+    if (selectedText) {
+      const range = selection?.getRangeAt(0);
+      if (!range) return;
 
-    setIsUploading(true);
-    setError(null);
-    setMessage(null);
+      const rect = range.getBoundingClientRect();
+      
+      // Only show tooltip if selection is within the original content div
+      const target = event.target as HTMLElement;
+      if (target.closest('.original-content')) {
+        setSelectedText(selectedText);
+        setTooltipPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top
+        });
+        setShowTooltip(true);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+        // Get the start and end indices of the selection
+        const preSelectionRange = range.cloneRange();
+        preSelectionRange.selectNodeContents(target.closest('.original-content')!);
+        preSelectionRange.setEnd(range.startContainer, range.startOffset);
+        const start = preSelectionRange.toString().length;
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const res = await response.json();
-
-      if (!response.ok) {
-        throw new Error(res.error || 'Failed to upload document');
+        setSelectionRange({
+          start,
+          end: start + selectedText.length
+        });
       }
-
-      const data = res.results[0]
-      // Directly set the document state with the uploaded file details
-      setDocument({
-        id: data.id,
-        title: data.title,
-        parsedContent: data.parsedContent,
-        originalContent: data.originalContent,
-        status: data.status,
-        fileName: data.fileName,
-        fileType: data.fileType,
-        fileSize: data.fileSize,
-        totalPages: data.totalPages,
-        preview: data.preview,
-        uploadedAt: data.uploadedAt
-      });
-
-      // Navigate to the document page
-      router.push(`/upload-document-2?id=${data.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload document');
-    } finally {
-      setIsUploading(false);
+    } else {
+      setShowTooltip(false);
+      setSelectionRange(null);
     }
-  };
+  }, []);
+
+  // Copy text to correction textarea
+  const handleCopyToCorrection = useCallback(() => {
+    if (!selectedText || !selectionRange) return;
+    
+    setCorrections(prev => [...prev, {
+      text: selectedText,
+      startIndex: selectionRange.start,
+      endIndex: selectionRange.end
+    }]);
+    setShowTooltip(false);
+  }, [selectedText, selectionRange]);
 
   const handleSaveCorrections = async () => {
     if (!document) return;
@@ -136,7 +145,11 @@ export default function UploadDocument2Page() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          corrections,
+          corrections: corrections.map(c => ({
+            text: c.text,
+            startIndex: c.startIndex,
+            endIndex: c.endIndex
+          })),
           status: 'corrected'
         })
       });
@@ -152,6 +165,63 @@ export default function UploadDocument2Page() {
     }
   };
 
+  // Add text selection event listener
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.document.addEventListener('mouseup', handleTextSelection);
+      return () => {
+        window.document.removeEventListener('mouseup', handleTextSelection);
+      };
+    }
+  }, [handleTextSelection]);
+
+  // Function to render original content with highlights
+  const renderHighlightedContent = (content: string) => {
+    if (!content) return null;
+
+    let lastIndex = 0;
+    const elements: JSX.Element[] = [];
+
+    // Sort corrections by startIndex to ensure proper rendering
+    const sortedCorrections = [...corrections].sort((a, b) => a.startIndex - b.startIndex);
+
+    sortedCorrections.forEach((correction, index) => {
+      if (correction.startIndex >= 0 && correction.endIndex > correction.startIndex) {
+        // Add text before the highlight
+        if (correction.startIndex > lastIndex) {
+          elements.push(
+            <span key={`text-${index}`}>
+              {content.slice(lastIndex, correction.startIndex)}
+            </span>
+          );
+        }
+
+        // Add highlighted text
+        elements.push(
+          <span 
+            key={`highlight-${index}`}
+            className="bg-yellow-100 border-b-2 border-red-500"
+          >
+            {content.slice(correction.startIndex, correction.endIndex)}
+          </span>
+        );
+
+        lastIndex = correction.endIndex;
+      }
+    });
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      elements.push(
+        <span key="text-end">
+          {content.slice(lastIndex)}
+        </span>
+      );
+    }
+
+    return elements;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="w-full p-4 space-y-4">
@@ -163,6 +233,7 @@ export default function UploadDocument2Page() {
             返回文档列表
           </Button>
         </div>
+
         <div className="space-y-4">
           <div className="mb-8 flex justify-between items-center">
             <h1 className="text-2xl font-bold">
@@ -197,61 +268,117 @@ export default function UploadDocument2Page() {
                 <Input 
                   id="file"
                   type="file" 
-                  onChange={handleFileChange}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    const selectedFile = event.target.files?.[0];
+                    if (selectedFile) {
+                      setFile(selectedFile);
+                      setError(null);
+                      setMessage(null);
+                    }
+                  }}
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Button 
-                  onClick={handleUpload} 
+                <Button
+                  onClick={async () => {
+                    if (!file) {
+                      setError('Please select a file to upload');
+                      return;
+                    }
+
+                    setIsUploading(true);
+                    setError(null);
+                    setMessage(null);
+
+                    try {
+                      const formData = new FormData();
+                      formData.append('file', file);
+
+                      const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData,
+                      });
+
+                      const res = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(res.error || 'Failed to upload document');
+                      }
+
+                      const data = res.results[0];
+                      setDocument({
+                        id: data.id,
+                        title: data.title,
+                        parsedContent: data.parsedContent,
+                        originalContent: data.originalContent,
+                        status: data.status,
+                        fileName: data.fileName,
+                        fileType: data.fileType,
+                        fileSize: data.fileSize,
+                        totalPages: data.totalPages,
+                        preview: data.preview,
+                        uploadedAt: data.uploadedAt
+                      });
+
+                      router.push(`/upload-document-2?id=${data.id}`);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Failed to upload document');
+                    } finally {
+                      setIsUploading(false);
+                    }
+                  }}
                   disabled={!file || isUploading}
+                  className="w-full"
                 >
-                  {isUploading ? '上传中...' : '上传'}
+                  {isUploading ? '上传中...' : '上传文档'}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Document Correction Section */}
+          {/* Document Content and Corrections Section */}
           {isEditing && document && (
-            <div className="space-y-6">
-              {/* Reference Documents Section */}
-              <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">参考文档</h2>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowReferenceDocsModal(!showReferenceDocsModal)}
-                  >
-                    {showReferenceDocsModal ? '收起' : '展开'} 参考文档列表
-                  </Button>
-                </div>
-                
-                {showReferenceDocsModal && (
-                  <ReferenceDocsList 
-                    onDocumentSelect={(docIds) => setSelectedReferenceDocIds(docIds)} 
-                  />
-                )}
-              </div>
-
-              {/* Original and Corrected Content */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">原始内容</h2>
-                  <div className="bg-gray-100 p-4 rounded-lg max-h-[600px] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap">{document.originalContent}</pre>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Original Content */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">原始内容</h2>
+                <div className="original-content bg-gray-100 p-4 rounded-lg max-h-[600px] overflow-y-auto">
+                  <div className="whitespace-pre-wrap">
+                    {renderHighlightedContent(document.originalContent || '')}
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">校对内容</h2>
-                  <textarea 
-                    className="w-full h-[600px] p-4 border rounded-lg"
-                    value={corrections.join('\n')}
-                    onChange={(e) => setCorrections(e.target.value.split('\n'))}
-                    placeholder="在此处进行文档校对..."
-                  />
+              </div>
+
+              {/* Corrections */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">校对内容</h2>
+                <div className="space-y-2">
+                  {corrections.map((correction, index) => (
+                    <div key={index} className="bg-white border p-4 rounded-lg">
+                      {correction.text}
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Selection Tooltip */}
+          {showTooltip && (
+            <div
+              style={{
+                position: 'fixed',
+                left: tooltipPosition.x,
+                top: tooltipPosition.y,
+                transform: 'translate(-50%, -100%)',
+                zIndex: 1000
+              }}
+              className="bg-white shadow-lg rounded p-2"
+            >
+              <Button onClick={handleCopyToCorrection} size="sm">
+                添加到校对区
+              </Button>
             </div>
           )}
         </div>
