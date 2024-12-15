@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Footer from '@/components/Footer'
+import { Footer } from '@/components/Footer'
 import { Sidebar } from '@/components/Sidebar'
 import { useMenu } from '@/app/context/MenuContext'
 import React from 'react'
