@@ -6,7 +6,7 @@ export const users = pgTable('users', {
   email: text('email').unique().notNull(),
   hashedPassword: text('hashed_password'),
   isDefaultUser: boolean('is_default_user').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 
@@ -22,7 +22,7 @@ export const documents = pgTable('documents', {
   parsedContent: text('parsed_content'),
   corrections: text('corrections'), // JSON string of corrections
   status: text('status').default('pending').notNull(), // Using text instead of enum for simplicity
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 
@@ -33,7 +33,7 @@ export const knowledges = pgTable('knowledges', {
   type: text('type').notNull(),
   tags: text('tags').array(), // Store tags as a text array
   userId: uuid('user_id').notNull().references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 

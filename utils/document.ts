@@ -62,7 +62,9 @@ export async function createDocument({
     originalContent,
     status,
     error,
-    totalPages
+    totalPages,
+    createdAt: new Date(),
+    updatedAt: new Date()
   }).returning();
 
   return newDocument;
@@ -85,14 +87,19 @@ export async function updateDocumentContent(
 
 export async function updateDocumentStatus(
   documentId: string,
-  status: 'pending' | 'processing' | 'processed' | 'error',
+  status: 'pending' | 'processing' | 'processed' | 'error' | 'corrected',
   error?: string
 ) {
+  console.log('Updating document status:', { documentId, status });
   const [updatedDocument] = await db.update(documents)
-    .set({ status })
+    .set({ 
+      status,
+      updatedAt: new Date()
+    })
     .where(eq(documents.id, documentId))
     .returning();
 
+  console.log('Document status updated:', updatedDocument);
   return updatedDocument;
 }
 

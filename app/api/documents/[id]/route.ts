@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { createDefaultUser } from '@/utils/auth';
 import { db } from '@/db';
 import { documents } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,6 @@ export async function GET(
       const defaultUser = await createDefaultUser();
       session = { user: defaultUser };
     }
-
     const result = await db.select({
       id: documents.id,
       title: documents.title,
@@ -29,11 +28,14 @@ export async function GET(
       updatedAt: documents.updatedAt,
       fileType: documents.fileType,
       fileSize: documents.fileSize,
-      totalPages: documents.totalPages
+      totalPages: documents.totalPages,
+      userId: documents.userId
     }).from(documents)
-    .where(eq(documents.id, params.id))
-    .where(eq(documents.userId, session.user.id))
-    .limit(1);
+      .where(and(
+        eq(documents.id, params.id),
+        eq(documents.userId, session.user.id)
+      ))
+      .limit(1);
 
     if (result.length === 0) {
       return NextResponse.json(
@@ -43,7 +45,7 @@ export async function GET(
     }
 
     const doc = result[0];
-    return NextResponse.json({
+    const response = {
       id: doc.id,
       title: doc.title,
       originalContent: doc.originalContent,
@@ -56,7 +58,8 @@ export async function GET(
       totalPages: doc.totalPages,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
-    });
+    };
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Document retrieval error:', error);
@@ -72,6 +75,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+
     let session = await auth();
     if (!session?.user) {
       const defaultUser = await createDefaultUser();
@@ -83,11 +87,12 @@ export async function PATCH(
 
     // Check if document exists and belongs to user
     const checkResult = await db.select({
-      id: documents.id
+      id: documents.id,
+      userId: documents.userId,
+      status: documents.status
     }).from(documents)
-    .where(eq(documents.id, params.id))
-    .where(eq(documents.userId, session.user.id))
-    .limit(1);
+      .where(eq(documents.id, params.id))
+      .limit(1);
 
     if (checkResult.length === 0) {
       return NextResponse.json(
@@ -96,36 +101,39 @@ export async function PATCH(
       );
     }
 
-    // Update title if provided
+    // Update document with all changes at once
+    const updateData: any = {};
+
     if (title) {
-      await db.update(documents)
-      .set({ title, updatedAt: new Date() })
-      .where(eq(documents.id, params.id));
+      updateData.title = title;
     }
 
-    // Handle individual correction or full corrections
-    if (correction || corrections) {
+    if (corrections) {
+      updateData.corrections = JSON.stringify(corrections);
+    } else if (correction) {
       const result = await db.select({
         corrections: documents.corrections
       }).from(documents)
-      .where(eq(documents.id, params.id));
-      
-      const currentCorrections = result[0]?.corrections 
-        ? JSON.parse(result[0].corrections) 
+        .where(eq(documents.id, params.id));
+
+      const currentCorrections = result[0]?.corrections
+        ? JSON.parse(result[0].corrections)
         : [];
-      
-      const newCorrections = correction 
-        ? [...currentCorrections, correction]
-        : corrections || currentCorrections;
-      
-      await db.update(documents)
-      .set({ 
-        corrections: JSON.stringify(newCorrections), 
-        status: status || 'processed',
-        updatedAt: new Date() 
-      })
-      .where(eq(documents.id, params.id));
+
+      updateData.corrections = JSON.stringify([...currentCorrections, correction]);
     }
+
+    if (status) {
+      updateData.status = status;
+    }
+
+    updateData.updatedAt = new Date();
+
+
+    // Perform single update with all changes
+    await db.update(documents)
+      .set(updateData)
+      .where(eq(documents.id, params.id));
 
     // Get updated document
     const result = await db.select({
@@ -141,8 +149,9 @@ export async function PATCH(
       fileSize: documents.fileSize,
       totalPages: documents.totalPages
     }).from(documents)
-    .where(eq(documents.id, params.id))
-    .limit(1);
+      .where(eq(documents.id, params.id))
+      .limit(1);
+
 
     const doc = result[0];
     return NextResponse.json({

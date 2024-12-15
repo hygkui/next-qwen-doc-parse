@@ -136,7 +136,7 @@ export default function UploadDocument2Page() {
         },
         body: JSON.stringify({
           corrections,
-          status: 'processed'
+          status: 'corrected'
         })
       });
 
