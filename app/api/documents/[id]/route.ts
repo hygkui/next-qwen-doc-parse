@@ -177,3 +177,50 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    let session = await auth();
+    if (!session?.user) {
+      const defaultUser = await createDefaultUser();
+      session = { user: defaultUser };
+    }
+
+    // Check if document exists and belongs to user
+    const checkResult = await db.select({
+      id: documents.id,
+      userId: documents.userId
+    }).from(documents)
+      .where(and(
+        eq(documents.id, params.id),
+        eq(documents.userId, session.user.id)
+      ))
+      .limit(1);
+
+    if (checkResult.length === 0) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the document
+    await db.delete(documents)
+      .where(and(
+        eq(documents.id, params.id),
+        eq(documents.userId, session.user.id)
+      ));
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('Document deletion error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete document', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}

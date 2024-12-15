@@ -33,6 +33,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -52,6 +53,30 @@ export default function DocumentsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '发生错误');
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`确定要删除文档 "${title}" 吗？此操作不可恢复。`)) {
+      return;
+    }
+
+    setIsDeleting(id);
+    try {
+      const response = await fetch(`/api/documents/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('删除文档失败');
+      }
+
+      // Remove the document from the list
+      setDocuments(prev => prev.filter(doc => doc.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除文档时发生错误');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -75,20 +100,6 @@ export default function DocumentsPage() {
           <Link href="/upload-document-2">
             <Button>上传新文档</Button>
           </Link>
-        </div>
-
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-yellow-800 mb-2">文档上传说明：</h3>
-          <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
-            <li>支持的文件格式：.txt、.pdf</li>
-            <li>文件大小限制：10MB以内</li>
-            <li>文档页数限制：100页以内</li>
-          </ul>
-        </div>
-
-        <div id="uploadError" className="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-red-800 mb-2">上传错误：</h3>
-          <p className="text-sm text-red-700" id="errorMessage"></p>
         </div>
 
         {isLoading ? (
@@ -162,6 +173,14 @@ export default function DocumentsPage() {
                             下载校对版
                           </Button>
                         )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(doc.id, doc.title)}
+                          disabled={isDeleting === doc.id}
+                        >
+                          {isDeleting === doc.id ? '删除中...' : '删除'}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

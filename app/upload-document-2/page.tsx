@@ -261,6 +261,15 @@ export default function UploadDocument2Page() {
           {/* Document Upload Section */}
           {!isEditing && (
             <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-yellow-800 mb-2">文档上传说明：</h3>
+                <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
+                  <li>支持的文件格式：.txt、.pdf、.doc 和 .docx</li>
+                  <li>文件大小限制：10MB以内</li>
+                  <li>文档页数限制：100页以内</li>
+                </ul>
+              </div>
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="file">
                   选择文件
