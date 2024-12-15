@@ -4,14 +4,25 @@ export const dynamic = 'force-dynamic';
 
 import { useAuth } from './context/auth-context';
 import { AuthLoading } from '@/components/auth/auth-loading';
+import { PasscodeVerification } from '@/components/auth/passcode-verification';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export default function Home() {
   const { user, isLoading } = useAuth();
+  const [isVerified, setIsVerified] = useState(false);
 
   if (isLoading) {
     return <AuthLoading />;
+  }
+
+  if (!isVerified && user?.isDefaultUser) {
+    return (
+      <div className="container mx-auto py-8">
+        <PasscodeVerification onVerify={setIsVerified} />
+      </div>
+    );
   }
 
   return (
