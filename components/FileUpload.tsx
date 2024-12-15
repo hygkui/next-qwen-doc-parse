@@ -17,22 +17,21 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.name.endsWith('.txt')) {
-      setUploadError('Please upload a .txt file')
-      return
+    const fileType = file.name.toLowerCase();
+    if (!fileType.endsWith('.txt') && !fileType.endsWith('.pdf')) {
+      setUploadError('仅支持 .txt 和 .pdf 文件');
+      return;
+    }
+
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('文件大小不能超过10MB');
+      return;
     }
 
     setSelectedFile(file)
     setIsUploading(true)
     setUploadError(null)
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target && event.target.result) {
-        setFileContent(event.target.result as string)
-      }
-    }
-    reader.readAsText(file)
 
     const formData = new FormData()
     formData.append('file', file)
@@ -43,22 +42,33 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         body: formData,
       })
 
-      if (!response.ok) {
-        throw new Error('Upload failed')
+      const data = await response.json()
+      
+      if (!response.ok || (data.results && data.results[0]?.error)) {
+        const errorMessage = data.results?.[0]?.error || '上传失败';
+        setUploadError(errorMessage);
+        // Show error in the documents page error container
+        const errorContainer = document.getElementById('uploadError');
+        const errorMessageElement = document.getElementById('errorMessage');
+        if (errorContainer && errorMessageElement) {
+          errorMessageElement.textContent = errorMessage;
+          errorContainer.classList.remove('hidden');
+        }
+        return;
       }
 
-      const data = await response.json()
-      if (data.success) {
-        onUploadComplete(data.filePath, data.content)
-      } else {
-        throw new Error(data.error || 'Upload failed')
+      // Hide error container if upload was successful
+      const errorContainer = document.getElementById('uploadError');
+      if (errorContainer) {
+        errorContainer.classList.add('hidden');
+      }
+
+      if (data.success && data.documentId) {
+        onUploadComplete(data.documentId, fileContent || undefined)
       }
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to upload file'
-      setUploadError(errorMessage)
-      console.error('Upload failed:', error)
+      console.error('Upload error:', error)
+      setUploadError(error instanceof Error ? error.message : '上传失败')
     } finally {
       setIsUploading(false)
     }
@@ -69,7 +79,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
       <div className="flex items-center space-x-4">
         <Input
           type="file"
-          accept=".txt"
+          accept=".txt, .pdf"
           onChange={handleFileUpload}
           disabled={isUploading}
           className="flex-1"
