@@ -1,91 +1,84 @@
-# Next.js Document Parser with Qwen API
+# 基于大模型的中文文本校正
 
-A document management system built with Next.js 14 that uses Qwen API for document parsing and analysis.
+基于大模型 Qwen 72B Instruct 的中文文本校对系统，用于文档解析和分析。
 
-## Features
+## 功能特性
 
-- User Authentication (with default user support)
-- Document Upload and Management
-- Document Parsing with Qwen API
-- Document Corrections History
-- Knowledge Base Management
+- 用户认证（支持默认用户）
+- 文档上传和管理
+- 使用 Qwen API 进行文档解析，且支持手动校对
+- 文档修正历史记录
+- 知识库管理
 
-## Prerequisites
+## 环境要求
 
-- Node.js 18+ and npm
-- PostgreSQL database
-- Qwen API key
+- Node.js 18+ 和 npm
+- PostgreSQL 数据库
+- Qwen API 密钥
 
-## Environment Variables
+## 环境变量
 
-Create a `.env.local` file in the root directory with the following variables:
+在根目录创建 `.env.local` 文件，包含以下变量：
 
 ```env
-DATABASE_URL=your_postgres_connection_string
-JWT_SECRET=your_jwt_secret
-QWEN_API_KEY=your_qwen_api_key
+DATABASE_URL=你的postgres连接字符串
+JWT_SECRET=你的jwt密钥
+QWEN_API_KEY=你的qwen_api密钥
 ```
 
-## Installation
+## 安装步骤
 
-1. Install dependencies:
+1. 安装依赖：
 ```bash
 npm install
 ```
 
-2. Run database migrations:
+2. 运行数据库迁移：
 ```bash
 npm run db:migrate
 ```
 
-3. Start the development server:
+3. 启动开发服务器：
 ```bash
 npm run dev
 ```
 
-## Project Structure
+## 项目结构
 
-- `/app` - Next.js 14 app directory with route handlers and pages
-- `/components` - Reusable React components
-- `/utils` - Utility functions and helpers
-- `/db` - Database schema and migrations
-- `/lib` - Shared libraries and configurations
+- `/app` - Next.js 14 应用目录，包含路由处理器和页面
+- `/components` - 可复用的 React 组件
+- `/utils` - 实用函数和辅助工具
+- `/db` - 数据库架构和迁移文件
+- `/lib` - 共享库和配置
 
-## API Routes
+## API 路由
 
-### Documents
-- `POST /api/documents` - Upload and parse a new document
-- `GET /api/documents` - List all documents
-- `GET /api/documents/[id]` - Get document details
-- `PATCH /api/documents/[id]` - Update document or add corrections
+### 文档相关
+- `POST /api/documents` - 上传并解析新文档
+- `GET /api/documents` - 列出所有文档
+- `GET /api/documents/[id]` - 获取文档详情
+- `PATCH /api/documents/[id]` - 更新文档或添加修正
 
-### Authentication
-- `POST /api/auth/signup` - Create a new user account
-- `POST /api/auth/login` - Log in to existing account
-- `POST /api/auth/logout` - Log out current user
-- `GET /api/auth/session` - Get current session info
+### 认证相关
+- `POST /api/auth/signup` - 创建新用户账户
+- `POST /api/auth/login` - 登录现有账户
+- `POST /api/auth/logout` - 登出当前用户
+- `GET /api/auth/session` - 获取当前会话信息
 
-## Document Processing
+## 文档处理流程
 
-1. When a document is uploaded:
-   - File hash is calculated to prevent duplicates
-   - Content is sent to Qwen API for parsing
-   - Original and parsed content are stored
-   - Document status is tracked (pending → processing → processed)
+1. 文档上传时：
+   - 将内容发送至 Qwen API 进行解析
+   - 存储原始内容和解析后的内容
+   - 跟踪文档状态（待处理 → 处理中 → 已处理）
 
-2. Document corrections:
-   - Users can make corrections to parsed content
-   - All corrections are stored in history
-   - Original parsed content is preserved
+2. 文档修正：
+   - 用户可以对解析后的内容进行修正
+   - 所有修正都会存入历史记录
+   - 保留原始解析内容
 
-## Contributing
+3. 文档下载：
+   - 生成包含修正历史记录的文档
+   - 可以下载原始文档和修正后的文档
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
 
-## License
-
-This project is licensed under the MIT License.
