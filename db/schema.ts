@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, integer, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, boolean, integer, varchar, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -56,3 +56,28 @@ export const knowledgesRelations = relations(knowledges, ({ one }) => ({
     references: [users.id]
   })
 }));
+
+
+
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title'),
+  userId: uuid('user_id'), // Add user association if needed
+  model: text('model').default('qwen-72b'), // Add model field
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  messages: jsonb('messages').$type<{
+    id: string
+    content: string
+    sender: 'user' | 'ai'
+    timestamp: number
+  }[]>().default([])
+})
+
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  // Define user relation correctly
+  user: one(users, {
+    fields: [conversations.userId],
+    references: [users.id]
+  })
+}))

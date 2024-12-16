@@ -66,7 +66,7 @@ export default function Home() {
           </div>
         </Link>
 
-        {!user?.isDefaultUser && (
+        {/* {!user?.isDefaultUser && (
           <Link href="/settings" className="block">
             <div className="border rounded-lg p-6 hover:border-blue-500 transition-colors">
               <h2 className="text-xl font-semibold mb-2">设置</h2>
@@ -75,7 +75,17 @@ export default function Home() {
               </p>
             </div>
           </Link>
-        )}
+        )} */}
+
+        <Link href="/conversations" className="block">
+          <div className="border rounded-lg p-6 hover:border-blue-500 transition-colors">
+            <h2 className="text-xl font-semibold mb-2">与模型对话</h2>
+            <p className="text-gray-600">
+              使用AI模型与您对话
+            </p>
+          </div>
+        </Link>
+
       </div>
 
       {user?.isDefaultUser && (
